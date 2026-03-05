@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Just Tap It - Digital Card</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #000; color: #fff; font-family: 'Inter', sans-serif; }
+        .profile-card { background: linear-gradient(145deg, #111, #000); border: 1px solid #333; }
+        .btn-action { background: #00aaff; transition: all 0.3s ease; }
+        .btn-action:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 170, 255, 0.4); }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="profile-card w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative">
+        <div class="pt-12 pb-8 px-6 text-center">
+            <h1 id="display-name" class="text-2xl font-bold tracking-tight">Loading...</h1>
+            <p id="display-title" class="text-blue-400 text-sm font-medium uppercase tracking-widest mt-1">...</p>
+        </div>
+
+        <div class="px-8 pb-10">
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <button onclick="downloadVCard()" class="col-span-2 btn-action text-white font-bold py-4 rounded-2xl flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-user-plus text-xl"></i> Save Contact
+                </button>
+                
+                <a id="btn-call" href="#" class="bg-zinc-800 p-4 rounded-2xl text-center border border-zinc-700 hover:bg-zinc-700">
+                    <i class="fa-solid fa-phone text-blue-400 text-2xl"></i>
+                    <p class="text-[10px] mt-2 text-zinc-400">Call</p>
+                </a>
+                
+                <a id="btn-wa" href="#" class="bg-zinc-800 p-4 rounded-2xl text-center border border-zinc-700 hover:bg-zinc-700">
+                    <i class="fa-brands fa-whatsapp text-green-400 text-2xl"></i>
+                    <p class="text-[10px] mt-2 text-zinc-400">WhatsApp</p>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbynoNmIyQT-h9QQv1dYhXzwxu2udZprSewwtcrh9kIwyEq4llfEnAno33h0NHnDARvF/exec";
+        let currentUser = {};
+
+        async function loadData() {
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                const params = new URLSearchParams(window.location.search);
+                const searchId = params.get('id');
+
+                currentUser = data.find(user => Number(user.MAMBER_ID) === Number(searchId));
+
+                if (!currentUser) {
+                    document.getElementById('display-name').innerText = "Member ID not found";
+                    return;
+                }
+
+                document.getElementById('display-name').innerText = currentUser.NAME;
+                document.getElementById('display-title').innerText = currentUser.SHOP_NAME;
+                document.getElementById('btn-call').href = "tel:" + currentUser.MOB_NO;
+                document.getElementById('btn-wa').href = "https://wa.me/" + currentUser.MOB_NO;
+            } catch (err) {
+                document.getElementById('display-name').innerText = "Error Loading Data";
+            }
+        }
+
+        function downloadVCard() {
+            if(!currentUser.NAME) return;
+            const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${currentUser.NAME}
+ORG:${currentUser.SHOP_NAME}
+TEL;TYPE=CELL:${currentUser.MOB_NO}
+EMAIL:${currentUser.EMAIL_ID}
+URL:${currentUser.MAP_LINK}
+END:VCARD`;
+            const blob = new Blob([vcard], { type: "text/vcard" });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.download = currentUser.NAME + ".vcf";
+            a.href = url;
+            a.click();
+        }
+        loadData();
+    </script>
+</body>
+</html>
