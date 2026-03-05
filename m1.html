@@ -41,51 +41,53 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbynoNmIyQT-h9QQv1dYhXzwxu2udZprSewwtcrh9kIwyEq4llfEnAno33h0NHnDARvF/exec";
-        let currentUser = {};
+    const API_URL = "https://script.google.com/macros/s/AKfycbynoNmIyQT-h9QQv1dYhXzwxu2udZprSewwtcrh9kIwyEq4llfEnAno33h0NHnDARvF/exec";
+    let currentUser = {};
 
-        async function loadData() {
-            try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                
-                const params = new URLSearchParams(window.location.search);
-                const searchId = params.get('id');
+    async function loadData() {
+        try {
+            const response = await fetch(API_URL);
+            const data = await response.json();
+            
+            const params = new URLSearchParams(window.location.search);
+            const searchId = params.get('id');
 
-                currentUser = data.find(user => Number(user.MAMBER_ID) === Number(searchId));
+            // JSON keys ke underscore (_) ke hisaab se mapping
+            currentUser = data.find(user => Number(user.mamber_id_) === Number(searchId));
 
-                if (!currentUser) {
-                    document.getElementById('display-name').innerText = "Member ID not found";
-                    return;
-                }
-
-                document.getElementById('display-name').innerText = currentUser.NAME;
-                document.getElementById('display-title').innerText = currentUser.SHOP_NAME;
-                document.getElementById('btn-call').href = "tel:" + currentUser.MOB_NO;
-                document.getElementById('btn-wa').href = "https://wa.me/" + currentUser.MOB_NO;
-            } catch (err) {
-                document.getElementById('display-name').innerText = "Error Loading Data";
+            if (!currentUser) {
+                document.getElementById('display-name').innerText = "Member ID not found";
+                return;
             }
-        }
 
-        function downloadVCard() {
-            if(!currentUser.NAME) return;
-            const vcard = `BEGIN:VCARD
-VERSION:3.0
-FN:${currentUser.NAME}
-ORG:${currentUser.SHOP_NAME}
-TEL;TYPE=CELL:${currentUser.MOB_NO}
-EMAIL:${currentUser.EMAIL_ID}
-URL:${currentUser.MAP_LINK}
-END:VCARD`;
-            const blob = new Blob([vcard], { type: "text/vcard" });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.download = currentUser.NAME + ".vcf";
-            a.href = url;
-            a.click();
+            // HTML Elements Update
+            document.getElementById('display-name').innerText = currentUser.name_ || "N/A";
+            document.getElementById('display-title').innerText = currentUser.shop_name_ || "Business Owner";
+            document.getElementById('btn-call').href = "tel:" + (currentUser.mob_no_ || "");
+            document.getElementById('btn-wa').href = "https://wa.me/" + (currentUser.mob_no_ || "");
+            
+        } catch (err) {
+            document.getElementById('display-name').innerText = "Error Loading Data";
         }
-        loadData();
-    </script>
-</body>
-</html>
+    }
+
+    function downloadVCard() {
+        if(!currentUser.name_) return;
+        const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${currentUser.name_}
+ORG:${currentUser.shop_name_}
+TEL;TYPE=CELL:${currentUser.mob_no_}
+EMAIL:${currentUser._email_id}
+URL:${currentUser._map_link}
+END:VCARD`;
+        
+        const blob = new Blob([vcard], { type: "text/vcard" });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.download = currentUser.name_ + ".vcf";
+        a.href = url;
+        a.click();
+    }
+    loadData();
+</script>
