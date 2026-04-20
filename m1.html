@@ -26,7 +26,7 @@
             backdrop-filter: blur(15px);
             width: 85%;
             max-width: 360px;
-            min-height: 480px; /* QR hatne ke baad height adjust ki hai */
+            min-height: 480px;
             padding: 50px 25px;
             border-radius: 45px;
             border: 1px solid rgba(255, 255, 255, 0.4);
@@ -102,9 +102,8 @@
             letter-spacing: 1px;
             transition: 0.3s;
         }
-        .floating-save:active { transform: translateX(-50%) scale(0.95); }
 
-        #loader { color: #555; font-weight: 600; }
+        #loader { color: #555; font-weight: 600; text-align: center; }
     </style>
 </head>
 <body>
@@ -135,7 +134,8 @@
     </a>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbynoNmIyQT-h9QQv1dYhXzwxu2udZprSewwtcrh9kIwyEq4llfEnAno33h0NHnDARvF/exec";
+        // AAPKA API URL
+        const API_URL = "https://script.google.com/macros/s/AKfycbzJoyKhinHjRXsluhywU0cc7hLKeakpE0DgM0U2gWVcE6Tw1bf61nU-5wPOnTRyCveg/exec";
         let currentUser = {};
 
         async function loadData() {
@@ -146,11 +146,17 @@
                 const params = new URLSearchParams(window.location.search);
                 const searchId = params.get('id');
 
-                currentUser = data.find(user => String(user.MAMBER_ID).trim() === String(searchId).trim());
+                console.log("Searching for ID:", searchId); // Debugging
+                console.log("Data from Sheet:", data); // Debugging
 
-                if (currentUser && currentUser.NAME) {
-                    document.getElementById('display-name').innerText = currentUser.NAME;
-                    document.getElementById('display-shop').innerText = currentUser.SHOP_NAME;
+                // Match karne ka pakka tarika (String aur Trim use karke)
+                currentUser = data.find(user => {
+                    return String(user.MAMBER_ID).trim() === String(searchId).trim();
+                });
+
+                if (currentUser) {
+                    document.getElementById('display-name').innerText = currentUser.NAME || "N/A";
+                    document.getElementById('display-shop').innerText = currentUser.SHOP_NAME || "N/A";
                     document.getElementById('display-logo').src = currentUser.image_url || "https://via.placeholder.com/150";
                     
                     document.getElementById('btn-call').href = "tel:" + currentUser.MOB_NO;
@@ -161,16 +167,17 @@
                     document.getElementById('loader').style.display = "none";
                     document.getElementById('mainCard').style.display = "flex";
                 } else {
-                    document.getElementById('loader').innerText = "Card Not Found!";
+                    document.getElementById('loader').innerHTML = `Card Not Found!<br><small>ID: ${searchId} is not in Excel.</small>`;
                 }
             } catch (err) {
-                document.getElementById('loader').innerText = "Error Loading Data";
+                console.error("Fetch Error:", err);
+                document.getElementById('loader').innerText = "Error Loading Data. Check Internet or Script Access.";
             }
         }
 
         function downloadVCard() {
             if(!currentUser.NAME) return;
-            const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${currentUser.NAME}\nORG:${currentUser.SHOP_NAME}\nTEL;TYPE=CELL:${currentUser.MOB_NO}\nEMAIL:${currentUser.EMAIL_ID}\nEND:VCARD`;
+            const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${currentUser.NAME}\nORG:${currentUser.SHOP_NAME}\nTEL;TYPE=CELL:${currentUser.MOB_NO}\nEMAIL:${currentUser.EMAIL_ID || ""}\nEND:VCARD`;
             const blob = new Blob([vcard], { type: "text/vcard" });
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
