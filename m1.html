@@ -104,11 +104,47 @@
         }
 
         #loader { color: #555; font-weight: 600; text-align: center; }
+
+        /* NAYA POPUP INPUT FIELD STYLE */
+        .lead-input {
+            width: 90%; 
+            padding: 12px; 
+            margin-bottom: 15px; 
+            border: 1px solid #e5e7eb; 
+            border-radius: 8px; 
+            font-size: 14px; 
+            outline: none; 
+            background: #f9fafb;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .lead-input:focus {
+            border-color: #25D366;
+            background: #ffffff;
+        }
     </style>
 </head>
 <body>
 
     <div id="loader">Loading Digital Card...</div>
+
+    <div id="leadModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:99999; backdrop-filter: blur(5px);">
+        <div style="background:#ffffff; width:85%; max-width:360px; margin:35% auto; padding:30px 20px; border-radius:24px; text-align:center; box-shadow: 0px 10px 30px rgba(0,0,0,0.3); font-family: 'Segoe UI', Arial, sans-serif;">
+            
+            <div style="width: 50px; height: 50px; background: #e7f9ed; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            
+            <h3 style="margin:0 0 10px 0; color:#111827; font-size:20px; font-weight:600;">Connect with Us</h3>
+            <p style="color:#6b7280; font-size:13px; margin:0 0 20px 0; line-height:1.4;">Please enter your details to view the smart business card.</p>
+            
+            <input type="text" id="custName" placeholder="Your Name" required class="lead-input">
+            <br>
+            <input type="tel" id="custPhone" placeholder="Mobile Number" required class="lead-input">
+            <br>
+            
+            <button onclick="submitLead()" style="width:97%; padding:13px; background:#25D366; color:#ffffff; border:none; border-radius:8px; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s;">Submit & View Card</button>
+        </div>
+    </div>
 
     <div class="card" id="mainCard">
         <div class="info-section">
@@ -134,19 +170,39 @@
     </a>
 
     <script>
-        // AAPKA API URL
+        // AAPKA WEB APP API URL
         const API_URL = "https://script.google.com/macros/s/AKfycbzJoyKhinHjRXsluhywU0cc7hLKeakpE0DgM0U2gWVcE6Tw1bf61nU-5wPOnTRyCveg/exec";
         let currentUser = {};
 
         async function loadData() {
             try {
-                const response = await fetch(API_URL);
-                const data = await response.json();
-                
                 const params = new URLSearchParams(window.location.search);
                 const searchId = params.get('id');
 
                 console.log("Searching for ID:", searchId); // Debugging
+
+                if (!searchId) {
+                    document.getElementById('loader').innerText = "Invalid Card ID! Please check link.";
+                    return;
+                }
+
+                // =========================================================================
+                // STEP 1: SECURE SUBSCRIPTION / LEAD FORM STATUS CHECK
+                // =========================================================================
+                const statusResponse = await fetch(`${API_URL}?id=${searchId}`);
+                const statusData = await statusResponse.json();
+
+                if (statusData.lead_status === "ON") {
+                    // Agar Status ON hai toh Card load hone se pehle Popup Modal show karo
+                    document.getElementById('leadModal').style.display = 'block';
+                }
+
+                // =========================================================================
+                // STEP 2: LOAD BUSINESS CARD DETAILS (Aapka Purana Flow)
+                // =========================================================================
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
                 console.log("Data from Sheet:", data); // Debugging
 
                 // Match karne ka pakka tarika (String aur Trim use karke)
@@ -173,6 +229,41 @@
                 console.error("Fetch Error:", err);
                 document.getElementById('loader').innerText = "Error Loading Data. Check Internet or Script Access.";
             }
+        }
+
+        // =========================================================================
+        // STEP 3: LEAD SUBMISSION HANDLING
+        // =========================================================================
+        function submitLead() {
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const urlParams = new URLSearchParams(window.location.search);
+            const cardId = urlParams.get('id');
+
+            if (name === "" || phone === "") {
+                alert("Please fill in all details.");
+                return;
+            }
+            if (phone.length < 10) {
+                alert("Please enter a valid 10-digit mobile number.");
+                return;
+            }
+
+            // Secure POST Request to save lead in Google Apps Script
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ "name": name, "phone": phone, "card_id": cardId })
+            })
+            .then(() => {
+                // Successful hone par Modal hide kar do
+                document.getElementById('leadModal').style.display = 'none';
+            })
+            .catch(error => {
+                alert("Something went wrong. Please try again.");
+                console.error('Error:', error);
+            });
         }
 
         function downloadVCard() {
